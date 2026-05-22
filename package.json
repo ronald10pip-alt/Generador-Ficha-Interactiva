@@ -1,0 +1,22 @@
+{
+  "name": "generador-ficha-interactiva",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.12",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "dependencies": {
+    "lucide-static": "^1.14.0",
+    "openai": "^6.37.0",
+    "pdfjs-dist": "^5.7.284",
+    "sortablejs": "^1.15.7",
+    "tesseract.js": "^7.0.0"
+  }
+}

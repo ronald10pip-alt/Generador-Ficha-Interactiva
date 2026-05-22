@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LectoIA Pro - Generador de Fichas Interactivas con IA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="main-header">
+            <div class="logo">
+                <span class="icon">📚</span>
+                <h1>LectoIA <span class="badge-pro">Pro v2.5</span></h1>
+            </div>
+            <div class="header-actions">
+                <button id="btn-new-activity" class="btn-reset" title="Nueva Actividad">🔄 Nueva Ficha</button>
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <!-- Panel Izquierdo: Vista Previa del Material -->
+            <section class="panel-left">
+                <div class="panel-header">
+                    <h2>Vista previa del material</h2>
+                    <div class="preview-controls" id="preview-controls" style="display: none;">
+                        <button id="btn-zoom-out" title="Alejar">➖</button>
+                        <span id="zoom-level">100%</span>
+                        <button id="btn-zoom-in" title="Acercar">➕</button>
+                        <button id="btn-replace" class="btn-secondary">Reemplazar archivo</button>
+                    </div>
+                </div>
+                
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-content">
+                        <span class="upload-icon">📤</span>
+                        <p>Arrastra tu lectura aquí o haz clic para subir</p>
+                        <span class="file-info">Formatos aceptados: JPG, PNG, PDF</span>
+                        <button type="button" class="btn-primary">Subir archivo</button>
+                    </div>
+                </div>
+                <input type="file" id="file-input" accept="image/jpeg, image/png, application/pdf" hidden>
+
+                <div id="preview-container" class="preview-container" style="display: none;">
+                    <img id="image-preview" style="display: none;" alt="Vista previa de lectura">
+                </div>
+                
+                <div id="ocr-status" class="ocr-status" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Procesando texto con OCR...</p>
+                </div>
+            </section>
+
+            <!-- Panel Derecho: Configuración e Integración -->
+            <section class="panel-right">
+                <div class="panel-header">
+                    <h2>Configuración y generación</h2>
+                </div>
+
+                <form id="config-form" class="config-form">
+                    <!-- 1. Datos generales -->
+                    <fieldset>
+                        <legend>1. Datos generales</legend>
+                        <div class="form-group">
+                            <label for="activity-title">Título de actividad</label>
+                            <input type="text" id="activity-title" placeholder="Ej: Comprensión Lectora: El Principito" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="education-level">Nivel Educativo</label>
+                                <select id="education-level">
+                                    <option value="Primaria">Primaria</option>
+                                    <option value="Secundaria">Secundaria</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="grade">Grado</label>
+                                <select id="grade">
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- 2. Estructura y cantidad de preguntas -->
+                    <fieldset>
+                        <legend>2. Estructura de la Ficha</legend>
+                        <div class="question-type-grid">
+                            <div class="q-type-row">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="q-type" value="multiple_choice" checked>
+                                    <span>Opción múltiple</span>
+                                </label>
+                                <input type="number" name="q-count-multiple_choice" class="q-count-input" value="4" min="0" max="10">
+                            </div>
+                            <div class="q-type-row">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="q-type" value="true_false" checked>
+                                    <span>Verdadero/Falso</span>
+                                </label>
+                                <input type="number" name="q-count-true_false" class="q-count-input" value="2" min="0" max="10">
+                            </div>
+                            <div class="q-type-row">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="q-type" value="match">
+                                    <span>Relacionar columnas</span>
+                                </label>
+                                <input type="number" name="q-count-match" class="q-count-input" value="0" min="0" max="10">
+                            </div>
+                            <div class="q-type-row">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="q-type" value="fill_blanks">
+                                    <span>Completar oraciones</span>
+                                </label>
+                                <input type="number" name="q-count-fill_blanks" class="q-count-input" value="0" min="0" max="10">
+                            </div>
+                            <div class="q-type-row">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" name="q-type" value="ordering">
+                                    <span>Ordenamiento</span>
+                                </label>
+                                <input type="number" name="q-count-ordering" class="q-count-input" value="0" min="0" max="10">
+                            </div>
+                            <div class="total-counter">
+                                <span>Total: <span id="total-q-count" class="count-badge">6</span></span>
+                                <span id="total-q-warning" class="warning-text" style="display: none;">⚠️ Máximo 10 preguntas</span>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Botón Principal: Copiar Prompt para Gemini -->
+                    <div class="action-buttons">
+                        <button type="button" id="btn-get-prompt" class="btn-generate">
+                            <span class="btn-icon">📋</span>
+                            GENERAR Y COPIAR SUPER PROMPT
+                        </button>
+                        
+                        <!-- Enlace a Gemini (Oculto inicialmente hasta que copien el prompt, controlado por JS) -->
+                        <a href="https://gemini.google.com/" target="_blank" id="btn-open-gemini" class="btn-manual" style="display: none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">
+                            <span class="btn-icon">🌐</span> IR A GEMINI (WEB)
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Sección Integración Manual (Paso Final) -->
+                <div id="manual-section" class="manual-section">
+                    <div class="manual-header">
+                        <h3>📥 Paso Final: Integrar Contenido</h3>
+                    </div>
+                    <p class="manual-step">Pega aquí el código JSON que te devuelva la IA:</p>
+                    <textarea id="json-input" class="json-input" placeholder='{"questions": [...] }'></textarea>
+                    
+                    <button id="btn-process-manual" class="btn-generate" style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%);">
+                        <span class="btn-icon">💾</span>
+                        DESCARGAR FICHA INTERACTIVA
+                    </button>
+                </div>
+
+                <div class="credits">
+                    Desarrollado por PIP. Edwin Ronald Cruz Ruiz<br>
+                    <a href="mailto:ronald10.pip@gmail.com" class="email">ronald10.pip@gmail.com</a>
+                    <a href="https://wa.me/51978979222?text=Hola%20Ronald%2C%20te%20contacto%20desde%20el%20Generador%20de%20Fichas%20Interactivas%20LectoIA.%20Necesito%20ayuda%20con..." target="_blank" class="wa-link">
+                        💭 ¿Necesitas ayuda? Contáctame
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <!-- Overlay de Carga -->
+        <div id="loading-overlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <div class="spinner-large"></div>
+                <h3>Generando actividad...</h3>
+                <p>Estamos diseñando tu ficha interactiva.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.GRADES = {
+            "Primaria": ["1°", "2°", "3°", "4°", "5°", "6°"],
+            "Secundaria": ["1°", "2°", "3°", "4°", "5°"]
+        };
+
+        window.updateGradesFallback = function() {
+            const levelEl = document.getElementById('education-level');
+            const gradeSelect = document.getElementById('grade');
+            if (!levelEl || !gradeSelect) return;
+            
+            const level = levelEl.value;
+            const list = window.GRADES[level] || [];
+            gradeSelect.innerHTML = list.map(g => `<option value="${g} de ${level}">${g}</option>`).join('');
+        };
+
+        window.addEventListener('DOMContentLoaded', window.updateGradesFallback);
+        document.getElementById('education-level').addEventListener('change', window.updateGradesFallback);
+    </script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
